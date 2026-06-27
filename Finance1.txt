@@ -1,0 +1,14 @@
+
+Cloud Infrastructure Details 
+Project ID = d2be2c10-b24e-4054-b324-1e8fa543e0ad
+
+API Key = aZP_dpBOLpoBH2MmXrODLAqSgzRN6UAG01XJ97VEkBz7
+
+Public End Point = https://us-south.ml.cloud.ibm.com
+
+LLM = IBM Granite-4.0-8B-Instruct
+
+Use the above Cloud Infrastructure Details 
+Deploy run on Cloud and Create local host 
+please generate user interface for the project
+

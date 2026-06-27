@@ -1,0 +1,6 @@
+IBM Cloud Services:
+1. Watson Studio - to create new project/open
+2. Watsonx.ai Runtime - to run project on cloud
+3. Watsonx Governance - Data Security
+4. Orchestrate - Agentic AI applications
+5. CloudObjectStorage - Storing Applications

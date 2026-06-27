@@ -1,0 +1,15 @@
+I am Narendra Eluri, aged 47 years, having no health complications, like spicy food, dislike sweets. I wll eat 3 times a day. My life style is normal. I need 200Kcal per day. I am complete vegetarian.
+Please use the following IBM Cloud credentials
+Project ID
+e69594ec-19f6-46b4-9ff6-fc62bf0a531d
+
+API Key
+aDeA85RsJe2nwHzXX240w-_wZ4e4HCK-CDkF_pSpQu0v
+
+Public End Point
+https://us-south.ml.cloud.ibm.com
+
+LLM
+IBM granite 3 h small
+
+please generate user inteface for the project
