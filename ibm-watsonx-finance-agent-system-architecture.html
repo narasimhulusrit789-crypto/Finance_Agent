@@ -1,0 +1,508 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>IBM watsonx Finance Agent — Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 16px 40px;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  .page {
+    width: 1080px;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  }
+
+  /* ── HEADER ── */
+  .hdr {
+    background: linear-gradient(135deg,#0f2060 0%,#1a3a8f 60%,#1d4ed8 100%);
+    padding: 20px 32px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .hdr-left h1 { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: 0.2px; }
+  .hdr-left p  { color: #93c5fd; font-size: 11.5px; margin-top: 4px; }
+  .hdr-right   { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .chip {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: #dbeafe;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 3px 9px;
+    letter-spacing: 0.4px;
+  }
+
+  /* ── CANVAS ── */
+  .canvas { padding: 20px 28px 16px; display: flex; flex-direction: column; gap: 0; }
+
+  /* ── LAYER LABELS ── */
+  .layer { display: flex; align-items: stretch; gap: 10px; margin-bottom: 0; }
+  .lbl {
+    width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .lbl span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #94a3b8;
+  }
+  .lcells { flex: 1; display: flex; gap: 8px; align-items: stretch; }
+
+  /* ── ARROW LANES ── */
+  .arrow-lane { display: flex; align-items: center; justify-content: center; height: 22px; }
+
+  /* ── CARD SYSTEM ── */
+  .card {
+    flex: 1; border-radius: 7px; padding: 10px 13px; display: flex;
+    flex-direction: column; gap: 5px; position: relative;
+  }
+  .card-title { font-size: 11.5px; font-weight: 700; line-height: 1.3; }
+  .card-sub   { font-size: 9.5px; color: #57606a; line-height: 1.5; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .tag {
+    font-size: 8.5px; font-weight: 600; border-radius: 3px;
+    padding: 2px 6px; letter-spacing: 0.3px;
+  }
+
+  /* colour themes */
+  .c-slate  { background:#f8fafc; border:1.5px solid #cbd5e1; }
+  .c-slate  .card-title { color:#1e3a5f; }
+  .c-slate  .tag { background:#e2e8f0; color:#334155; }
+
+  .c-blue   { background:#eff6ff; border:1.5px solid #93c5fd; }
+  .c-blue   .card-title { color:#1d4ed8; }
+  .c-blue   .tag { background:#dbeafe; color:#1e40af; }
+
+  .c-orch   { background:#0f2060; border:1.5px solid #2e4fa0; }
+  .c-orch   .card-title { color:#e0edff; }
+  .c-orch   .card-sub   { color:#93c5fd; }
+  .c-orch   .tag { background:rgba(255,255,255,0.12); color:#bfdbfe; }
+
+  .c-indigo { background:#eef2ff; border:1.5px solid #a5b4fc; }
+  .c-indigo .card-title { color:#3730a3; }
+  .c-indigo .tag { background:#e0e7ff; color:#312e81; }
+
+  .c-violet { background:#f5f3ff; border:1.5px solid #c4b5fd; }
+  .c-violet .card-title { color:#5b21b6; }
+  .c-violet .tag { background:#ede9fe; color:#4c1d95; }
+
+  .c-rose   { background:#fff1f2; border:1.5px solid #fda4af; }
+  .c-rose   .card-title { color:#be123c; }
+  .c-rose   .tag { background:#ffe4e6; color:#9f1239; }
+
+  .c-teal   { background:#f0fdfa; border:1.5px solid #5eead4; }
+  .c-teal   .card-title { color:#0f766e; }
+  .c-teal   .tag { background:#ccfbf1; color:#134e4a; }
+
+  .c-green  { background:#f0fdf4; border:1.5px solid #86efac; }
+  .c-green  .card-title { color:#166534; }
+  .c-green  .tag { background:#dcfce7; color:#14532d; }
+
+  .c-amber  { background:#fffbeb; border:1.5px solid #fcd34d; }
+  .c-amber  .card-title { color:#92400e; }
+  .c-amber  .tag { background:#fef3c7; color:#78350f; }
+
+  .c-sky    { background:#f0f9ff; border:1.5px solid #7dd3fc; }
+  .c-sky    .card-title { color:#0369a1; }
+  .c-sky    .tag { background:#e0f2fe; color:#075985; }
+
+  /* ── INFRA BAND ── */
+  .infra-band {
+    border: 1.5px solid #e5e7eb; border-radius: 8px;
+    padding: 10px 12px 12px; margin-top: 0;
+    background: #fafafa;
+  }
+  .infra-band-title {
+    font-size: 8.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.1px; color: #94a3b8; margin-bottom: 8px;
+  }
+  .infra-row { display: flex; gap: 8px; }
+  .infra-cell {
+    flex: 1; border-radius: 6px; padding: 9px 11px; border: 1.5px solid;
+  }
+  .infra-cell-title { font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+  .infra-cell-body  { font-size: 9px; color: #57606a; line-height: 1.55; }
+
+  /* ── SECTION LABEL ── */
+  .sec-lbl {
+    font-size: 8.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.1px; color: #94a3b8; margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .sec-lbl:first-child { margin-top: 0; }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }
+
+  /* ── LEGEND ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+  .lg-item { display: flex; align-items: center; gap: 5px; font-size: 9.5px; color: #57606a; }
+  .lg-dot  { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid #e5e7eb; text-align: center;
+    padding: 9px; font-size: 11px; color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>IBM watsonx Finance Agent — System Architecture</h1>
+      <p>Multi-Agent Orchestration · RAG Pipeline · Real-time Dashboard · IBM Cloud · Granite-4.0-8B-Instruct</p>
+    </div>
+    <div class="hdr-right">
+      <span class="chip">IBM BOB</span>
+      <span class="chip">ibm/granite-4-8b-instruct</span>
+      <span class="chip">ChromaDB · RAG</span>
+      <span class="chip">FastAPI · WebSocket</span>
+      <span class="chip">IBM Code Engine</span>
+    </div>
+  </div>
+
+  
+  <div class="canvas">
+
+    
+    <div class="sec-lbl">① Client Layer</div>
+    <div class="layer">
+      <div class="lbl"><span>Client</span></div>
+      <div class="lcells">
+
+        <div class="card c-slate" style="flex:1.6">
+          <div class="card-title">Web Dashboard (SPA)</div>
+          <div class="card-sub">Portfolio doughnut · Investment growth projection · Risk radar · Market heatmap · Chat UI</div>
+          <div class="tags">
+            <span class="tag">frontend/index.html</span>
+            <span class="tag">Chart.js</span>
+            <span class="tag">Risk Gauge 0–10</span>
+            <span class="tag">Sector Heatmap</span>
+          </div>
+        </div>
+
+        <div class="card c-slate">
+          <div class="card-title">REST API Clients</div>
+          <div class="card-sub">POST /api/chat  ·  POST /api/upload<br />GET /api/portfolio  ·  GET /health<br />POST /api/portfolio/save</div>
+          <div class="tags">
+            <span class="tag">TLS 1.3</span>
+            <span class="tag">JWT Bearer</span>
+          </div>
+        </div>
+
+        <div class="card c-slate">
+          <div class="card-title">WebSocket Stream</div>
+          <div class="card-sub">ws://…/ws/chat/{session_id}<br />Real-time progress events per stage<br />Streaming final narrative tokens</div>
+          <div class="tags">
+            <span class="tag">progress events</span>
+            <span class="tag">complete event</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+    <div class="arrow-lane">
+      <svg width="1024" height="22" style="display:block">
+        <defs>
+          <marker id="arr">
+            <polygon points="0 0,7 3.5,0 7" fill="#94a3b8"></polygon>
+          </marker>
+        </defs>
+        <line x1="512" y1="0" x2="512" y2="15" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <text x="522" y="13" font-size="9" fill="#94a3b8" font-family="system-ui,sans-serif">HTTPS / WebSocket (TLS 1.3) · JWT Auth</text>
+      </svg>
+    </div>
+
+    
+    <div class="sec-lbl">② API Gateway — FastAPI (api/main.py · Port 8000)</div>
+    <div class="layer">
+      <div class="lbl"><span>Gateway</span></div>
+      <div class="lcells">
+
+        <div class="card c-blue" style="flex:1.4">
+          <div class="card-title">FastAPI Application</div>
+          <div class="card-sub">Pydantic request validation · CORS middleware<br />JWT authentication · Structured logging (structlog)</div>
+          <div class="tags">
+            <span class="tag">Uvicorn ASGI</span>
+            <span class="tag">Pydantic v2</span>
+            <span class="tag">api/main.py</span>
+          </div>
+        </div>
+
+        <div class="card c-blue">
+          <div class="card-title">Session Memory</div>
+          <div class="card-sub">AgentMemory — in-process<br />Last 6 turns context window<br />Max 20 turns per session</div>
+          <div class="tags">
+            <span class="tag">Redis (optional)</span>
+            <span class="tag">orchestrator.py</span>
+          </div>
+        </div>
+
+        <div class="card c-blue">
+          <div class="card-title">Document Ingest</div>
+          <div class="card-sub">Multipart upload endpoint<br />PDF · DOCX · TXT · CSV · XLSX · MD<br />Triggers RAG ingestion pipeline</div>
+          <div class="tags">
+            <span class="tag">POST /api/upload</span>
+            <span class="tag">rag/pipeline.py</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+    <div class="arrow-lane">
+      <svg width="1024" height="22" style="display:block">
+        <line x1="512" y1="0" x2="512" y2="15" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <text x="522" y="13" font-size="9" fill="#94a3b8" font-family="system-ui,sans-serif">UserProfile · query · session_id</text>
+      </svg>
+    </div>
+
+    
+    <div class="sec-lbl">③ Orchestration Layer — IBM BOB (agents/orchestrator.py)</div>
+    <div class="layer">
+      <div class="lbl"><span>Orch</span></div>
+      <div class="lcells">
+        <div class="card c-orch" style="flex-direction:row;align-items:center;gap:18px;padding:13px 18px">
+          <div style="flex:1.2">
+            <div class="card-title" style="font-size:13.5px">Agent Orchestrator</div>
+            <div class="card-sub" style="margin-top:5px">IBM Granite-4.0-8B · Sequential pipeline with parallel-safe stages<br />AgentMemory · Message routing · Error recovery · Final synthesis</div>
+          </div>
+          <div class="tags" style="flex:1.8;justify-content:flex-end;margin-top:0;gap:5px">
+            <span class="tag">Stage 1 — Knowledge (async)</span>
+            <span class="tag">Stage 2 — Portfolio (sequential)</span>
+            <span class="tag">Stage 3a — Risk</span>
+            <span class="tag">Stage 3b — Market (parallel-safe)</span>
+            <span class="tag">Stage 5 — Synthesis</span>
+            <span class="tag">Tools: route · synthesize · memory R/W</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="arrow-lane" style="height:28px">
+      <svg width="1024" height="28" style="display:block">
+        
+        <line x1="512" y1="0" x2="512" y2="12" stroke="#94a3b8" stroke-width="1.5"></line>
+        
+        <line x1="130" y1="12" x2="894" y2="12" stroke="#94a3b8" stroke-width="1.5"></line>
+        
+        <line x1="130" y1="12" x2="130" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <line x1="370" y1="12" x2="370" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <line x1="654" y1="12" x2="654" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <line x1="894" y1="12" x2="894" y2="20" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        
+        <text x="75" y="10" font-size="8.5" fill="#94a3b8" font-family="system-ui,sans-serif">Stage 1</text>
+        <text x="318" y="10" font-size="8.5" fill="#94a3b8" font-family="system-ui,sans-serif">Stage 2</text>
+        <text x="602" y="10" font-size="8.5" fill="#94a3b8" font-family="system-ui,sans-serif">Stage 3a</text>
+        <text x="840" y="10" font-size="8.5" fill="#94a3b8" font-family="system-ui,sans-serif">Stage 3b ‖</text>
+      </svg>
+    </div>
+
+    
+    <div class="sec-lbl">④ Specialist Agents</div>
+    <div class="layer">
+      <div class="lbl"><span>Agents</span></div>
+      <div class="lcells">
+
+        <div class="card c-indigo">
+          <div class="card-title">Agent 1 — Investment Knowledge</div>
+          <div class="card-sub">RAG over financial docs · Vector search · News retrieval · Sector insights · Key findings summary</div>
+          <div class="tags">
+            <span class="tag">RAG enabled</span>
+            <span class="tag">vector_search</span>
+            <span class="tag">document_retrieve</span>
+            <span class="tag">news_fetch</span>
+            <span class="tag">investment_knowledge_agent.py</span>
+          </div>
+        </div>
+
+        <div class="card c-violet">
+          <div class="card-title">Agent 2 — Portfolio Recommendation</div>
+          <div class="card-sub">MPT-based allocation · Asset picks · Expected return · Projected value at horizon · Rebalancing cadence</div>
+          <div class="tags">
+            <span class="tag">calculate_allocation</span>
+            <span class="tag">compute_projection</span>
+            <span class="tag">get_instruments</span>
+            <span class="tag">portfolio_recommendation_agent.py</span>
+          </div>
+        </div>
+
+        <div class="card c-rose">
+          <div class="card-title">Agent 3a — Risk Analysis</div>
+          <div class="card-sub">Beta · Volatility · Max drawdown · Sharpe ratio · Diversification score · Stress scenarios · Mitigations</div>
+          <div class="tags">
+            <span class="tag">compute_risk_metrics</span>
+            <span class="tag">diversification_score</span>
+            <span class="tag">stress_test</span>
+            <span class="tag">risk_analysis_agent.py</span>
+          </div>
+        </div>
+
+        <div class="card c-teal">
+          <div class="card-title">Agent 3b — Market Monitoring</div>
+          <div class="card-sub">Market indices · Sector heatmap · Macro indicators · Sentiment · Real-time alerts INFO / WARN / CRIT</div>
+          <div class="tags">
+            <span class="tag">fetch_market_data</span>
+            <span class="tag">news_api</span>
+            <span class="tag">sentiment_analysis</span>
+            <span class="tag">fire_alert → WS</span>
+            <span class="tag">market_monitoring_agent.py</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+    <div class="arrow-lane" style="height:28px">
+      <svg width="1024" height="28" style="display:block">
+        
+        <line x1="130" y1="0" x2="130" y2="14" stroke="#94a3b8" stroke-width="1.5"></line>
+        <line x1="370" y1="0" x2="370" y2="14" stroke="#94a3b8" stroke-width="1.5"></line>
+        <line x1="654" y1="0" x2="654" y2="14" stroke="#94a3b8" stroke-width="1.5"></line>
+        <line x1="894" y1="0" x2="894" y2="14" stroke="#94a3b8" stroke-width="1.5"></line>
+        
+        <line x1="130" y1="14" x2="894" y2="14" stroke="#94a3b8" stroke-width="1.5"></line>
+        
+        <line x1="512" y1="14" x2="512" y2="22" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <text x="522" y="22" font-size="8.5" fill="#94a3b8" font-family="system-ui,sans-serif">risk_metrics · market_insight · allocations · knowledge_summary → Granite synthesis</text>
+      </svg>
+    </div>
+
+    
+    <div class="sec-lbl">⑤ Synthesis &amp; Outputs</div>
+    <div class="layer">
+      <div class="lbl"><span>Output</span></div>
+      <div class="lcells">
+
+        <div class="card c-green" style="flex:1.6">
+          <div class="card-title">Final Synthesis — Granite LLM</div>
+          <div class="card-sub">Granite composes all agent outputs into a structured narrative with exec summary, allocation table, risk assessment, market context &amp; top-3 action items</div>
+          <div class="tags">
+            <span class="tag">max_tokens 2500</span>
+            <span class="tag">OrchestratorOutput</span>
+            <span class="tag">final_narrative</span>
+            <span class="tag">recommendation</span>
+            <span class="tag">risk_metrics</span>
+            <span class="tag">market_insight</span>
+            <span class="tag">sources[]</span>
+          </div>
+        </div>
+
+        <div class="card c-amber">
+          <div class="card-title">File Storage</div>
+          <div class="card-sub">Portfolio JSON · Generated reports<br />User document uploads<br />IBM COS AES-256 + local fallback</div>
+          <div class="tags">
+            <span class="tag">IBM COS</span>
+            <span class="tag">portfolios/{user_id}/</span>
+            <span class="tag">reports/{user_id}/</span>
+            <span class="tag">file_component.py</span>
+          </div>
+        </div>
+
+        <div class="card c-amber">
+          <div class="card-title">IBM watsonx.ai Endpoint</div>
+          <div class="card-sub">ibm/granite-4-8b-instruct<br />temp 0.7 · top_p 0.95 · max 4096 tok<br />us-south.ml.cloud.ibm.com</div>
+          <div class="tags">
+            <span class="tag">Async inference</span>
+            <span class="tag">Token streaming</span>
+            <span class="tag">watsonx_client.py</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <hr />
+
+    
+    <div class="infra-band">
+      <div class="infra-band-title">⑥ Data &amp; Infrastructure Layer</div>
+      <div class="infra-row">
+
+        <div class="infra-cell" style="background:#f0fdf4;border-color:#86efac;flex:1.3">
+          <div class="infra-cell-title" style="color:#166534">RAG Pipeline (rag/pipeline.py)</div>
+          <div class="infra-cell-body">
+            Upload → Text extract → Chunk (512 / 64 overlap)<br />
+            → Embed (all-MiniLM-L6-v2) → ChromaDB<br />
+            → Cosine sim (top-k 5, min 0.3) → Granite prompt
+          </div>
+        </div>
+
+        <div class="infra-cell" style="background:#eff6ff;border-color:#93c5fd">
+          <div class="infra-cell-title" style="color:#1d4ed8">External Market APIs</div>
+          <div class="infra-cell-body">
+            Alpha Vantage (prices)<br />
+            NewsAPI.org (news_fetch)<br />
+            Finnhub.io (market data, alerts)
+          </div>
+        </div>
+
+        <div class="infra-cell" style="background:#f5f3ff;border-color:#c4b5fd">
+          <div class="infra-cell-title" style="color:#5b21b6">IBM Cloud Infrastructure</div>
+          <div class="infra-cell-body">
+            Code Engine · 1–5 replicas autoscale<br />
+            2 vCPU / 4 GiB · RPS target 100<br />
+            IBM Secrets Manager · AES-256
+          </div>
+        </div>
+
+        <div class="infra-cell" style="background:#fff7ed;border-color:#fcd34d">
+          <div class="infra-cell-title" style="color:#c2410c">Security &amp; Observability</div>
+          <div class="infra-cell-body">
+            JWT + RBAC · TLS 1.3 end-to-end<br />
+            structlog audit trail · /health check<br />
+            Docker (non-root) · manifest.yml
+          </div>
+        </div>
+
+        <div class="infra-cell" style="background:#f0f9ff;border-color:#7dd3fc">
+          <div class="infra-cell-title" style="color:#0369a1">Data Models (agents/models.py)</div>
+          <div class="infra-cell-body">
+            UserProfile · PortfolioHolding<br />
+            InvestmentRecommendation · RiskMetrics<br />
+            MarketInsight · MarketAlert · OrchestratorOutput
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+    <hr />
+    <div class="legend">
+      <div class="lg-item"><div class="lg-dot" style="background:#e2e8f0;border:1px solid #cbd5e1"></div>Client / UI</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#dbeafe;border:1px solid #93c5fd"></div>API Gateway</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#1a3a8f"></div>Orchestrator (IBM BOB)</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#e0e7ff;border:1px solid #a5b4fc"></div>Agent 1 — Knowledge</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></div>Agent 2 — Portfolio</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#ffe4e6;border:1px solid #fda4af"></div>Agent 3a — Risk</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#ccfbf1;border:1px solid #5eead4"></div>Agent 3b — Market</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#dcfce7;border:1px solid #86efac"></div>Synthesis / RAG</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#fef3c7;border:1px solid #fcd34d"></div>Storage / Cloud</div>
+      <div class="lg-item"><div class="lg-dot" style="background:#e0f2fe;border:1px solid #7dd3fc"></div>Data Models</div>
+    </div>
+
+  </div>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+</body>
+</html>
