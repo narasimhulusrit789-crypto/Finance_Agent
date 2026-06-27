@@ -1,0 +1,20 @@
+# IBM Cloud Foundry / Code Engine deployment manifest
+applications:
+  - name: finance-agent
+    command: python main.py
+    instances: 2
+    memory: 2G
+    disk_quota: 2G
+    buildpack: python_buildpack
+    env:
+      PYTHONPATH: .
+      APP_ENV: production
+      APP_PORT: "8080"
+      APP_HOST: "0.0.0.0"
+      # Secrets injected via IBM Cloud service bindings or CF env vars:
+      # WATSONX_API_KEY, WATSONX_PROJECT_ID, SECRET_KEY, etc.
+    services:
+      - finance-agent-redis
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 120

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBM watsonx Finance Agent — Granite-4.0</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1e2530;--surface3:#252d3a;
+  --border:#30363d;--text:#e6edf3;--muted:#8b949e;--muted2:#6e7681;
+  --ibm-blue:#0f62fe;--ibm-blue2:#4589ff;--ibm-green:#42be65;
+  --ibm-purple:#8b5cf6;--ibm-cyan:#06b6d4;--ibm-teal:#14b8a6;
+  --warn:#f59e0b;--danger:#ef4444;--danger2:#ff6b6b;
+  --font:-apple-system,"Segoe UI",system-ui,sans-serif;
+  --radius:10px;--radius-sm:6px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;overflow:hidden}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.main{display:grid;grid-template-columns:390px 1fr;overflow:hidden;height:100%}
+
+/* ── Header ── */
+.header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+  z-index:200;
+}
+.hd-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.2px}
+.ibm-pill{
+  background:var(--ibm-blue);color:#fff;
+  padding:3px 9px;border-radius:5px;font-size:10px;
+  font-weight:700;letter-spacing:1.5px;
+}
+.granite-pill{
+  background:rgba(139,92,246,.18);color:var(--ibm-purple);
+  border:1px solid rgba(139,92,246,.3);
+  padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;
+}
+.hd-sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+.hd-tabs{display:flex;gap:2px;margin-left:auto}
+.tab-btn{
+  background:none;border:none;color:var(--muted);
+  padding:5px 14px;border-radius:var(--radius-sm);
+  cursor:pointer;font-size:13px;font-family:var(--font);
+  transition:all .15s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text);background:var(--surface2)}
+.tab-btn.active{color:var(--ibm-blue2);background:rgba(15,98,254,.14);font-weight:600}
+.hd-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--ibm-green);flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.status-dot.live{animation:pulse 2s infinite}
+
+/* ── Chat Panel ── */
+.chat-panel{
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.cp-header{padding:14px 18px 10px;border-bottom:1px solid var(--border)}
+.cp-header h2{font-size:13px;font-weight:600;color:var(--text)}
+.cp-header p{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* Profile form */
+.profile-form{padding:10px 18px 12px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fg{display:flex;flex-direction:column;gap:2px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.fg input,.fg select{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);border-radius:var(--radius-sm);
+  padding:5px 8px;font-size:12px;font-family:var(--font);
+  outline:none;transition:border-color .15s;width:100%;
+}
+.fg input:focus,.fg select:focus{border-color:var(--ibm-blue2)}
+.risk-row{display:flex;gap:4px;margin-top:2px}
+.risk-btn{
+  flex:1;padding:4px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--muted);cursor:pointer;font-size:11px;font-family:var(--font);
+  transition:all .15s;
+}
+.risk-btn.low.active{background:rgba(66,190,101,.14);border-color:var(--ibm-green);color:var(--ibm-green)}
+.risk-btn.medium.active{background:rgba(245,158,11,.14);border-color:var(--warn);color:var(--warn)}
+.risk-btn.high.active{background:rgba(239,68,68,.14);border-color:var(--danger);color:var(--danger)}
+.upload-row{display:flex;gap:6px;align-items:center;margin-top:8px}
+.upload-lbl{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--muted);padding:5px 10px;border-radius:var(--radius-sm);
+  font-size:11px;cursor:pointer;transition:all .15s;
+}
+.upload-lbl:hover{border-color:var(--ibm-blue2);color:var(--ibm-blue2)}
+#fileInput{display:none}
+#uploadStatus{font-size:11px;color:var(--muted)}
+
+/* Messages */
+.chat-messages{
+  flex:1;overflow-y:auto;padding:14px 18px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.chat-messages::-webkit-scrollbar{width:3px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.msg{display:flex;flex-direction:column;gap:3px}
+.msg.user{align-items:flex-end}
+.msg.assistant{align-items:flex-start}
+.msg-bubble{
+  max-width:88%;padding:9px 13px;
+  border-radius:12px;font-size:13px;line-height:1.65;
+}
+.msg.user .msg-bubble{
+  background:var(--ibm-blue);color:#fff;
+  border-bottom-right-radius:3px;
+}
+.msg.assistant .msg-bubble{
+  background:var(--surface2);color:var(--text);
+  border-bottom-left-radius:3px;border:1px solid var(--border);
+}
+.msg-meta{font-size:10px;color:var(--muted2);padding:0 3px}
+.agent-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(15,98,254,.1);color:var(--ibm-blue2);
+  padding:2px 8px;border-radius:20px;font-size:10px;
+  margin-bottom:3px;border:1px solid rgba(15,98,254,.22);
+}
+
+/* Progress stages */
+.prog-stages{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:2px 0;
+}
+.stage-item{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:11px;color:var(--muted)}
+.stage-item.active{color:var(--text)}
+.stage-item.done{color:var(--ibm-green)}
+.si-icon{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);flex-shrink:0}
+.si-icon.active{border-color:var(--ibm-blue2);background:rgba(15,98,254,.28);animation:pulse 1s infinite}
+.si-icon.done{border-color:var(--ibm-green);background:var(--ibm-green)}
+
+/* Quick starts */
+.qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.qs-btn{
+  background:var(--surface2);border:1px solid var(--border);
+  padding:8px 10px;border-radius:8px;cursor:pointer;
+  text-align:left;font-family:var(--font);font-size:11px;color:var(--muted);
+  transition:all .15s;
+}
+.qs-btn:hover{border-color:var(--ibm-blue2);color:var(--text)}
+.qs-btn strong{display:block;margin-bottom:1px;color:var(--ibm-blue2);font-size:11px}
+
+/* Chat input */
+.chat-input-area{padding:10px 18px;border-top:1px solid var(--border);background:var(--surface)}
+.input-row{display:flex;gap:7px}
+.chat-input{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:9px 12px;
+  font-size:13px;font-family:var(--font);resize:none;outline:none;
+  max-height:100px;line-height:1.5;transition:border-color .15s;
+}
+.chat-input:focus{border-color:var(--ibm-blue2)}
+.chat-input::placeholder{color:var(--muted2)}
+.send-btn{
+  background:var(--ibm-blue);border:none;color:#fff;
+  width:40px;height:40px;border-radius:8px;cursor:pointer;
+  font-size:16px;flex-shrink:0;transition:background .15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.send-btn:hover{background:#0353e9}
+.send-btn:disabled{background:var(--surface3);color:var(--muted2);cursor:not-allowed}
+
+/* ── Dashboard Panel ── */
+.dashboard-panel{
+  overflow-y:auto;padding:18px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.dashboard-panel::-webkit-scrollbar{width:4px}
+.dashboard-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+  position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--ibm-blue);opacity:.5;
+}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.kpi-value{font-size:22px;font-weight:700;margin-top:4px;line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.kpi-badge{
+  display:inline-flex;align-items:center;gap:2px;
+  font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:3px;
+}
+.kpi-badge.pos{background:rgba(66,190,101,.12);color:var(--ibm-green)}
+.kpi-badge.neg{background:rgba(239,68,68,.12);color:var(--danger)}
+.kpi-badge.neu{background:rgba(100,116,139,.12);color:var(--muted)}
+
+/* Chart cards */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+}
+.chart-card.wide{grid-column:1/-1}
+.chart-title{
+  font-size:12px;font-weight:600;margin-bottom:10px;
+  display:flex;align-items:center;gap:7px;color:var(--text);
+}
+.ct-badge{
+  font-size:10px;background:rgba(15,98,254,.12);color:var(--ibm-blue2);
+  padding:2px 7px;border-radius:20px;margin-left:auto;font-weight:500;
+}
+.chart-wrap{position:relative}
+
+/* Allocation table */
+.alloc-table{width:100%;border-collapse:collapse;font-size:12px}
+.alloc-table th{
+  text-align:left;padding:6px 10px;color:var(--muted);
+  font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border);
+}
+.alloc-table td{padding:8px 10px;border-bottom:1px solid rgba(48,54,61,.6)}
+.alloc-bar-wrap{display:flex;align-items:center;gap:7px}
+.alloc-bar{height:5px;border-radius:3px;background:var(--ibm-blue);min-width:3px;transition:width .4s}
+.ac-badge{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500}
+.ac-eq{background:rgba(15,98,254,.12);color:var(--ibm-blue2)}
+.ac-fi{background:rgba(66,190,101,.12);color:var(--ibm-green)}
+.ac-re{background:rgba(139,92,246,.12);color:var(--ibm-purple)}
+.ac-ca{background:rgba(100,116,139,.12);color:var(--muted)}
+.ac-co{background:rgba(245,158,11,.12);color:var(--warn)}
+.ac-cr{background:rgba(6,182,212,.12);color:var(--ibm-cyan)}
+.ac-in{background:rgba(239,68,68,.12);color:var(--danger)}
+
+/* Risk gauge */
+.risk-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
+.risk-score-big{font-size:38px;font-weight:800;line-height:1}
+.risk-score-big.low{color:var(--ibm-green)}
+.risk-score-big.medium{color:var(--warn)}
+.risk-score-big.high{color:var(--danger)}
+.risk-bar-bg{
+  width:100%;height:8px;
+  background:linear-gradient(to right,var(--ibm-green),var(--warn),var(--danger));
+  border-radius:4px;position:relative;margin-top:2px;
+}
+.risk-needle{
+  position:absolute;top:-5px;width:18px;height:18px;
+  border-radius:50%;background:var(--text);border:2px solid var(--surface);
+  transform:translateX(-50%);transition:left .7s cubic-bezier(.4,0,.2,1);
+}
+
+/* Scenario cards */
+.scenario-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sc-card{border-radius:8px;padding:10px;text-align:center}
+.sc-card.bear{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)}
+.sc-card.base{background:rgba(15,98,254,.07);border:1px solid rgba(15,98,254,.2)}
+.sc-card.bull{background:rgba(66,190,101,.07);border:1px solid rgba(66,190,101,.2)}
+.sc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.sc-val{font-size:15px;font-weight:700;margin-top:3px}
+.sc-card.bear .sc-val{color:var(--danger)}
+.sc-card.base .sc-val{color:var(--ibm-blue2)}
+.sc-card.bull .sc-val{color:var(--ibm-green)}
+
+/* Picks */
+.picks-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pick-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 11px;
+}
+.pick-num{font-size:10px;color:var(--ibm-blue2);font-weight:700;text-transform:uppercase}
+.pick-text{font-size:11px;color:var(--text);margin-top:1px;line-height:1.4}
+
+/* Alerts */
+.alert-list{display:flex;flex-direction:column;gap:7px}
+.alert-item{
+  display:flex;gap:9px;background:var(--surface2);
+  border-radius:7px;padding:9px 11px;border-left:3px solid var(--border);
+}
+.alert-item.info{border-left-color:var(--ibm-blue2)}
+.alert-item.warning{border-left-color:var(--warn)}
+.alert-item.critical{border-left-color:var(--danger);background:rgba(239,68,68,.05)}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.alert-title{font-weight:600;font-size:12px}
+.alert-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.alert-action{font-size:10px;color:var(--ibm-blue2);margin-top:3px}
+
+/* Sector heatmap */
+.sentiment-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+}
+.sent-bull{background:rgba(66,190,101,.14);color:var(--ibm-green)}
+.sent-bear{background:rgba(239,68,68,.14);color:var(--danger)}
+.sent-neu{background:rgba(100,116,139,.14);color:var(--muted)}
+.sector-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.sector-cell{
+  padding:7px;border-radius:6px;text-align:center;
+  font-size:10px;cursor:default;transition:opacity .1s;
+}
+.sector-cell:hover{opacity:.85}
+.sector-name{font-weight:500}
+.sector-val{font-size:12px;font-weight:700;margin-top:1px}
+
+/* Sources */
+.sources-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.src-tag{
+  background:var(--surface2);border:1px solid var(--border);
+  padding:3px 9px;border-radius:20px;font-size:10px;color:var(--muted);
+}
+
+/* Mitigation */
+.mit-item{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:7px 10px;background:var(--surface2);
+  border-radius:7px;border:1px solid var(--border);font-size:12px;
+}
+.mit-icon{color:var(--ibm-green);font-size:13px;flex-shrink:0;margin-top:1px}
+
+/* Welcome state */
+.welcome-state{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;text-align:center;
+  color:var(--muted);gap:10px;padding:32px;
+}
+.welcome-state h2{font-size:17px;color:var(--text);font-weight:600}
+.welcome-state p{font-size:13px;max-width:380px;line-height:1.6}
+.welcome-icon{font-size:44px}
+.agent-cards{display:flex;flex-direction:column;gap:7px;width:100%;max-width:360px;margin-top:6px;text-align:left}
+.agent-card-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;background:var(--surface2);
+  border-radius:8px;border:1px solid var(--border);font-size:12px;
+}
+.agent-card-item span:first-child{font-size:16px;flex-shrink:0}
+
+/* Spinner */
+.spinner{
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--ibm-blue2);border-radius:50%;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner.go{animation:spin .65s linear infinite}
+
+/* Cloud info bar */
+.cloud-bar{
+  background:rgba(15,98,254,.07);border-bottom:1px solid rgba(15,98,254,.15);
+  padding:4px 18px;font-size:10px;color:var(--muted);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.cloud-bar span{color:var(--ibm-blue2)}
+
+/* Responsive */
+@media(max-width:1100px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr}
+  .sector-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:800px){
+  .main{grid-template-columns:1fr}
+  .chat-panel{max-height:48vh}
+}
+
+/* Scrollbar global */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="hd-logo">
+      <span class="ibm-pill">IBM</span>
+      <span>watsonx Finance Agent</span>
+    </div>
+    <span class="granite-pill">Granite-4.0-8B-Instruct</span>
+    <div class="hd-sep"></div>
+    <div class="hd-tabs">
+      <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">&#x1F4CA; Dashboard</button>
+      <button class="tab-btn" id="tab-portfolio" onclick="switchTab('portfolio')">&#x1F4BC; Portfolio</button>
+      <button class="tab-btn" id="tab-risk" onclick="switchTab('risk')">&#x26A0; Risk</button>
+      <button class="tab-btn" id="tab-market" onclick="switchTab('market')">&#x1F4C8; Market</button>
+    </div>
+    <div class="hd-status">
+      <div class="status-dot live" id="statusDot"></div>
+      <span id="statusText">Connected</span>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <div class="main">
+
+    <!-- ── Chat Panel ── -->
+    <aside class="chat-panel">
+      <div class="cp-header">
+        <h2>AI Investment Advisor</h2>
+        <p>IBM Granite-4.0 &nbsp;&middot;&nbsp; 4 Specialist Agents &nbsp;&middot;&nbsp; RAG Knowledge Base</p>
+      </div>
+
+      <!-- Cloud info bar -->
+      <div class="cloud-bar">
+        &#x2601; Cloud: <span>us-south.ml.cloud.ibm.com</span>
+        &nbsp;&nbsp;Project: <span>d2be2c10</span>
+        &nbsp;&nbsp;Model: <span>granite-4-h-small</span>
+      </div>
+
+      <!-- Profile form -->
+      <div class="profile-form">
+        <div class="form-grid">
+          <div class="fg full">
+            <label>Investment Goal</label>
+            <select id="goalInput">
+              <option>Retirement Planning</option>
+              <option selected>Wealth Growth</option>
+              <option>Child Education</option>
+              <option>Emergency Fund</option>
+              <option>Home Purchase</option>
+              <option>Passive Income</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Budget ($)</label>
+            <input type="number" id="budgetInput" value="50000" min="100" step="1000">
+          </div>
+          <div class="fg">
+            <label>Monthly ($)</label>
+            <input type="number" id="monthlyInput" value="500" min="0" step="100">
+          </div>
+          <div class="fg">
+            <label>Horizon (yrs)</label>
+            <input type="number" id="horizonInput" value="10" min="1" max="50">
+          </div>
+          <div class="fg">
+            <label>Age</label>
+            <input type="number" id="ageInput" value="35" min="18" max="90">
+          </div>
+          <div class="fg full">
+            <label>Risk Tolerance</label>
+            <div class="risk-row">
+              <button class="risk-btn low" onclick="setRisk('Low')">&#x1F7E2; Low</button>
+              <button class="risk-btn medium active" onclick="setRisk('Medium')">&#x1F7E1; Medium</button>
+              <button class="risk-btn high" onclick="setRisk('High')">&#x1F534; High</button>
+            </div>
+          </div>
+        </div>
+        <div class="upload-row">
+          <label class="upload-lbl" for="fileInput">&#x1F4CE; Upload Document</label>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.csv,.xlsx">
+          <span id="uploadStatus"></span>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg assistant">
+          <div class="agent-badge">&#x1F916; IBM BOB Orchestrator</div>
+          <div class="msg-bubble">
+            Welcome! I'm your AI Investment Advisor powered by <strong>IBM Granite-4.0-8B-Instruct</strong> and four specialist agents.<br><br>
+            Configure your profile on the left, then ask me anything about investments, portfolio strategy, or market analysis.
+          </div>
+        </div>
+        <div class="qs-grid">
+          <button class="qs-btn" onclick="quickStart('Build me a diversified portfolio for wealth growth')">
+            <strong>&#x1F4CA; Build Portfolio</strong>
+            Personalised allocation plan
+          </button>
+          <button class="qs-btn" onclick="quickStart('Analyse the risk of my investment plan')">
+            <strong>&#x26A0; Risk Analysis</strong>
+            Volatility &amp; drawdown report
+          </button>
+          <button class="qs-btn" onclick="quickStart('What are the current best market opportunities?')">
+            <strong>&#x1F4C8; Market Insights</strong>
+            Live trend analysis
+          </button>
+          <button class="qs-btn" onclick="quickStart('Explain my investment options for retirement planning')">
+            <strong>&#x1F3E6; Retirement Plan</strong>
+            Long-term strategy
+          </button>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <div class="input-row">
+          <textarea class="chat-input" id="chatInput"
+            placeholder="Ask about investments, portfolio, market trends..."
+            rows="2" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#x27A4;</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Dashboard Panel ── -->
+    <main class="dashboard-panel" id="dashboardPanel">
+
+      <!-- Welcome state -->
+      <div class="welcome-state" id="welcomeState">
+        <div class="welcome-icon">&#x1F4CA;</div>
+        <h2>Investment Dashboard</h2>
+        <p>Your personalised AI-powered investment analysis will appear here. Configure your profile and submit a query to get started.</p>
+        <div class="agent-cards">
+          <div class="agent-card-item"><span>&#x1F50D;</span><span><strong>Knowledge Agent</strong> — searches your financial documents via RAG</span></div>
+          <div class="agent-card-item"><span>&#x1F4BC;</span><span><strong>Portfolio Agent</strong> — generates personalised asset allocation</span></div>
+          <div class="agent-card-item"><span>&#x26A0;</span><span><strong>Risk Agent</strong> — evaluates volatility, drawdown &amp; diversification</span></div>
+          <div class="agent-card-item"><span>&#x1F4E1;</span><span><strong>Market Agent</strong> — monitors live trends and fires alerts</span></div>
+        </div>
+      </div>
+
+      <!-- Results (hidden until first response) -->
+      <div id="resultsContainer" style="display:none;flex-direction:column;gap:14px;">
+
+        <!-- KPI row -->
+        <div class="kpi-grid" id="kpiGrid">
+          <div class="kpi-card">
+            <div class="kpi-label">Projected Value</div>
+            <div class="kpi-value" id="kpiProjected" style="color:var(--ibm-green)">&#8212;</div>
+            <div class="kpi-sub">At investment horizon</div>
+            <div class="kpi-badge pos" id="kpiProjBadge"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Expected Return</div>
+            <div class="kpi-value" id="kpiReturn" style="color:var(--ibm-blue2)">&#8212;</div>
+            <div class="kpi-sub">Annual CAGR estimate</div>
+            <div class="kpi-badge neu" id="kpiReturnBadge"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Risk Score</div>
+            <div class="kpi-value" id="kpiRisk">&#8212;</div>
+            <div class="kpi-sub" id="kpiRiskLabel">Composite score / 10</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Diversification</div>
+            <div class="kpi-value" id="kpiDiv" style="color:var(--ibm-purple)">&#8212;</div>
+            <div class="kpi-sub">Portfolio quality score</div>
+            <div class="kpi-badge neu" id="kpiDivBadge"></div>
+          </div>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Asset Allocation <span class="ct-badge">Recommended</span></div>
+            <div class="chart-wrap" style="height:210px"><canvas id="allocationChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Risk Metrics <span class="ct-badge">Analysis</span></div>
+            <div class="chart-wrap" style="height:210px"><canvas id="riskChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Growth projection -->
+        <div class="chart-card wide">
+          <div class="chart-title">
+            Investment Growth Projection
+            <span class="ct-badge" id="growthHorizonBadge">10-Year Forecast</span>
+          </div>
+          <div class="chart-wrap" style="height:190px"><canvas id="growthChart"></canvas></div>
+        </div>
+
+        <!-- Allocation details table -->
+        <div class="chart-card wide" id="secAllocation">
+          <div class="chart-title">Portfolio Allocation Details</div>
+          <table class="alloc-table">
+            <thead>
+              <tr>
+                <th>Asset Class</th>
+                <th>Type</th>
+                <th>Weight</th>
+                <th>Bar</th>
+                <th>Instruments</th>
+              </tr>
+            </thead>
+            <tbody id="allocTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Top picks + scenarios -->
+        <div class="charts-row">
+          <div class="chart-card" id="secTopPicks">
+            <div class="chart-title">Top Investment Picks <span class="ct-badge">AI Selected</span></div>
+            <div class="picks-grid" id="topPicksGrid"></div>
+          </div>
+          <div class="chart-card" id="secScenarios">
+            <div class="chart-title">Stress Test Scenarios</div>
+            <div class="scenario-row">
+              <div class="sc-card bear"><div class="sc-label">&#x1F43B; Bear</div><div class="sc-val" id="scenBear">&#8212;</div></div>
+              <div class="sc-card base"><div class="sc-label">&#x27A1; Base</div><div class="sc-val" id="scenBase">&#8212;</div></div>
+              <div class="sc-card bull"><div class="sc-label">&#x1F402; Bull</div><div class="sc-val" id="scenBull">&#8212;</div></div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="risk-gauge-wrap">
+                <div style="display:flex;align-items:baseline;gap:4px">
+                  <span class="risk-score-big medium" id="riskScoreDisplay">0</span>
+                  <span style="color:var(--muted);font-size:15px">/10</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted)">Composite Risk Score</div>
+                <div class="risk-bar-bg" style="width:100%">
+                  <div class="risk-needle" id="riskNeedle" style="left:50%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector + alerts -->
+        <div class="charts-row">
+          <div class="chart-card" id="secSector">
+            <div class="chart-title" style="justify-content:space-between">
+              <span>Sector Performance</span>
+              <span class="sentiment-badge sent-neu" id="sentimentBadge">&#x26AA; Neutral</span>
+            </div>
+            <div class="sector-grid" id="sectorGrid"></div>
+          </div>
+          <div class="chart-card" id="secAlerts">
+            <div class="chart-title">Market Alerts <span class="ct-badge" id="alertCountBadge">0</span></div>
+            <div class="alert-list" id="alertList">
+              <div style="color:var(--muted);font-size:12px;padding:6px 0">No alerts yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Market indices bar chart -->
+        <div class="chart-card wide" id="secIndices">
+          <div class="chart-title">Market Indices Snapshot <span class="ct-badge">Live</span></div>
+          <div class="chart-wrap" style="height:150px"><canvas id="indicesChart"></canvas></div>
+        </div>
+
+        <!-- Mitigation + sources -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Risk Mitigation Strategies</div>
+            <div id="mitigationList" style="display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">
+              Knowledge Sources
+              <span class="ct-badge" id="sourcesCountBadge">0</span>
+            </div>
+            <div class="sources-list" id="sourcesList"></div>
+            <div style="margin-top:12px">
+              <div class="chart-title" style="margin-bottom:6px">Key Risk Factors</div>
+              <div id="keyRisksList" style="display:flex;flex-direction:column;gap:4px"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /resultsContainer -->
+    </main>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────
+const API_BASE = window.location.origin;
+let sessionId  = null;
+let currentRisk = 'Medium';
+let charts = {};
+let isLoading = false;
+
+// ── Tab switching ───────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const res = document.getElementById('resultsContainer');
+  if (res.style.display !== 'none') {
+    const sections = {
+      dashboard: ['kpiGrid','secAllocation','secTopPicks','secScenarios','secSector','secAlerts','secIndices','mitigationList','sourcesList','keyRisksList'],
+      portfolio:  ['secAllocation','secTopPicks','kpiGrid'],
+      risk:       ['secScenarios','secSector','secAlerts','mitigationList','keyRisksList'],
+      market:     ['secIndices','secSector','secAlerts','sentimentBadge'],
+    };
+    // show all first
+    document.querySelectorAll('#resultsContainer > *, #resultsContainer .chart-card, #resultsContainer .kpi-grid').forEach(el => el.style.display='');
+  }
+}
+
+// ── Risk selector ───────────────────────────────────────────────────
+function setRisk(level) {
+  currentRisk = level;
+  document.querySelectorAll('.risk-btn').forEach(b => b.classList.remove('active'));
+  const map = { Low:'low', Medium:'medium', High:'high' };
+  document.querySelector('.risk-btn.' + map[level]).classList.add('active');
+}
+
+// ── Auto-resize textarea ────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+// ── Quick-start ─────────────────────────────────────────────────────
+function quickStart(msg) {
+  document.getElementById('chatInput').value = msg;
+  sendMessage();
+}
+
+// ── Enter key ───────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+// ── Health check ────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(API_BASE + '/health', { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      document.getElementById('statusDot').classList.add('live');
+      document.getElementById('statusText').textContent = 'Connected';
+      document.getElementById('statusDot').style.background = 'var(--ibm-green)';
+    } else { setOffline(); }
+  } catch { setOffline(); }
+}
+function setOffline() {
+  document.getElementById('statusDot').style.background = 'var(--danger)';
+  document.getElementById('statusDot').classList.remove('live');
+  document.getElementById('statusText').textContent = 'Offline — demo mode';
+}
+checkHealth();
+setInterval(checkHealth, 30000);
+
+// ── Send message ────────────────────────────────────────────────────
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('chatInput');
+  const msg   = input.value.trim();
+  if (!msg) return;
+
+  isLoading = true;
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  addMessage('user', msg);
+
+  const progId = addProgressStages();
+
+  const payload = {
+    message:                  msg,
+    investment_goal:          document.getElementById('goalInput').value,
+    budget:                   parseFloat(document.getElementById('budgetInput').value) || 50000,
+    monthly_contribution:     parseFloat(document.getElementById('monthlyInput').value) || 0,
+    investment_horizon_years: parseInt(document.getElementById('horizonInput').value)  || 10,
+    age:                      parseInt(document.getElementById('ageInput').value)       || 35,
+    risk_level:               currentRisk,
+    session_id:               sessionId,
+  };
+
+  try {
+    updateStage(progId, 'knowledge_agent', 'active');
+    await sleep(300);
+    updateStage(progId, 'knowledge_agent', 'done');
+    updateStage(progId, 'portfolio_agent', 'active');
+
+    const resp = await fetch(API_BASE + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    updateStage(progId, 'portfolio_agent', 'done');
+    updateStage(progId, 'risk_agent', 'active');
+    await sleep(200);
+    updateStage(progId, 'risk_agent', 'done');
+    updateStage(progId, 'market_agent', 'active');
+    await sleep(200);
+    updateStage(progId, 'market_agent', 'done');
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+
+    const data = await resp.json();
+    sessionId = data.session_id;
+    removeProgressStages(progId);
+    addMessage('assistant', data.message);
+    updateDashboard(data);
+
+  } catch (err) {
+    removeProgressStages(progId);
+    // Fallback: generate demo data so the UI always works
+    const demo = generateDemoData(msg);
+    addMessage('assistant',
+      '&#x1F4A1; <em>(Demo mode — server not reachable)</em><br><br>' +
+      'Here is a demonstration of what IBM Granite-4.0-8B-Instruct would return for your query. ' +
+      'Start the backend with <code>python main.py</code> or <code>start.bat</code> to see real AI responses.<br><br>' +
+      '<strong>Query:</strong> ' + escHtml(msg)
+    );
+    updateDashboard(demo);
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+// ── Add chat message ────────────────────────────────────────────────
+function addMessage(role, content) {
+  const box  = document.getElementById('chatMessages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + role;
+
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (role === 'assistant') {
+    const badge = document.createElement('div');
+    badge.className = 'agent-badge';
+    badge.textContent = '\uD83E\uDD16 IBM Granite-4.0';
+    wrap.appendChild(badge);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = content;
+  wrap.appendChild(bubble);
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = now;
+  wrap.appendChild(meta);
+
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Progress stages ─────────────────────────────────────────────────
+let stageIdCounter = 0;
+const STAGES = [
+  { id:'knowledge_agent', label:'Knowledge Agent — searching RAG', icon:'&#x1F50D;' },
+  { id:'portfolio_agent', label:'Portfolio Agent — building allocation', icon:'&#x1F4BC;' },
+  { id:'risk_agent',      label:'Risk Agent — analysing risk metrics', icon:'&#x26A0;' },
+  { id:'market_agent',    label:'Market Agent — monitoring conditions', icon:'&#x1F4E1;' },
+];
+
+function addProgressStages() {
+  const id  = ++stageIdCounter;
+  const box = document.getElementById('chatMessages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg assistant';
+  wrap.id = 'prog-' + id;
+
+  const badge = document.createElement('div');
+  badge.className = 'agent-badge';
+  badge.innerHTML = '<span class="spinner go" style="display:inline-block;margin-right:4px"></span> Running agents...';
+  wrap.appendChild(badge);
+
+  const stagesDiv = document.createElement('div');
+  stagesDiv.className = 'prog-stages';
+  STAGES.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'stage-item';
+    item.id = `prog-${id}-${s.id}`;
+    item.innerHTML = `<div class="si-icon"></div><span>${s.icon} ${s.label}</span>`;
+    stagesDiv.appendChild(item);
+  });
+  wrap.appendChild(stagesDiv);
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+  return id;
+}
+
+function updateStage(progId, stage, state) {
+  const el = document.getElementById(`prog-${progId}-${stage}`);
+  if (!el) return;
+  el.className = 'stage-item ' + state;
+  const icon = el.querySelector('.si-icon');
+  if (icon) icon.className = 'si-icon ' + state;
+}
+
+function removeProgressStages(id) {
+  const el = document.getElementById('prog-' + id);
+  if (el) el.remove();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Update dashboard ────────────────────────────────────────────────
+function updateDashboard(data) {
+  const welcome = document.getElementById('welcomeState');
+  const results = document.getElementById('resultsContainer');
+  welcome.style.display = 'none';
+  results.style.display = 'flex';
+
+  const rec    = data.recommendation  || {};
+  const risk   = data.risk_metrics    || {};
+  const market = data.market_insight  || {};
+
+  // ─ KPIs ─
+  const budget   = parseFloat(document.getElementById('budgetInput').value) || 50000;
+  const monthly  = parseFloat(document.getElementById('monthlyInput').value) || 0;
+  const horizon  = parseInt(document.getElementById('horizonInput').value)   || 10;
+  const rate     = rec.expected_annual_return || 0.082;
+  const projected = calcProjected(budget, monthly, rate, horizon);
+
+  document.getElementById('kpiProjected').textContent  = fmtMoney(projected);
+  document.getElementById('kpiProjBadge').textContent  = '+' + fmtPct(rate * horizon);
+  document.getElementById('kpiReturn').textContent     = fmtPct(rate);
+  document.getElementById('kpiReturnBadge').textContent = 'CAGR';
+  document.getElementById('growthHorizonBadge').textContent = horizon + '-Year Forecast';
+
+  const riskScore = risk.risk_score || 5;
+  document.getElementById('kpiRisk').textContent      = riskScore.toFixed(1);
+  document.getElementById('kpiRisk').style.color      = riskScore < 4 ? 'var(--ibm-green)' : riskScore < 7 ? 'var(--warn)' : 'var(--danger)';
+  document.getElementById('kpiRiskLabel').textContent = riskScore < 4 ? 'Low Risk' : riskScore < 7 ? 'Medium Risk' : 'High Risk';
+
+  const divScore = rec.diversification_score || 7.5;
+  document.getElementById('kpiDiv').textContent      = divScore.toFixed(1) + '/10';
+  document.getElementById('kpiDivBadge').textContent = divScore >= 7 ? 'Well Diversified' : 'Moderate';
+  document.getElementById('kpiDivBadge').className   = 'kpi-badge ' + (divScore >= 7 ? 'pos' : 'neu');
+
+  // ─ Charts ─
+  renderAllocationChart(rec.asset_allocation || []);
+  renderRiskChart(risk);
+  renderGrowthChart(budget, rate, horizon, monthly);
+  renderAllocTable(rec.asset_allocation || []);
+  renderTopPicks(rec.top_picks || []);
+
+  // ─ Scenarios ─
+  const sc = risk.stress_test_scenarios || {};
+  document.getElementById('scenBear').textContent = fmtPct(sc.bear_market   ?? -0.22);
+  document.getElementById('scenBase').textContent = fmtPct(sc.base_case     ?? 0.082);
+  document.getElementById('scenBull').textContent = fmtPct(sc.bull_market   ?? 0.18);
+
+  // ─ Risk gauge ─
+  const scoreEl = document.getElementById('riskScoreDisplay');
+  scoreEl.textContent = riskScore.toFixed(1);
+  scoreEl.className   = 'risk-score-big ' + (riskScore < 4 ? 'low' : riskScore < 7 ? 'medium' : 'high');
+  document.getElementById('riskNeedle').style.left = ((riskScore / 10) * 100) + '%';
+
+  // ─ Sectors ─
+  renderSectorHeatmap(market.sector_performance || {});
+
+  // ─ Sentiment ─
+  const sent    = (market.market_sentiment || 'neutral').toLowerCase();
+  const sentEl  = document.getElementById('sentimentBadge');
+  const sentMap = {
+    bullish: ['&#x1F7E2; Bullish', 'sent-bull'],
+    bearish: ['&#x1F534; Bearish', 'sent-bear'],
+    neutral: ['&#x26AA; Neutral', 'sent-neu'],
+  };
+  const [sentTxt, sentCls] = sentMap[sent] || sentMap.neutral;
+  sentEl.innerHTML   = sentTxt;
+  sentEl.className   = 'sentiment-badge ' + sentCls;
+
+  // ─ Alerts ─
+  renderAlerts(market.alerts || []);
+
+  // ─ Indices ─
+  renderIndicesChart(market.major_indices || {});
+
+  // ─ Mitigation ─
+  const mitList = document.getElementById('mitigationList');
+  mitList.innerHTML = '';
+  (risk.mitigation_strategies || []).forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'mit-item';
+    d.innerHTML = `<span class="mit-icon">&#x2714;</span><span style="font-size:12px">${escHtml(m)}</span>`;
+    mitList.appendChild(d);
+  });
+  if (!mitList.children.length) mitList.innerHTML = '<div style="color:var(--muted);font-size:12px">No mitigation strategies returned.</div>';
+
+  // ─ Sources ─
+  const srcList = document.getElementById('sourcesList');
+  srcList.innerHTML = '';
+  (data.sources || []).forEach(s => {
+    const t = document.createElement('span');
+    t.className = 'src-tag';
+    t.textContent = s;
+    srcList.appendChild(t);
+  });
+  document.getElementById('sourcesCountBadge').textContent = (data.sources || []).length;
+  if (!srcList.children.length) srcList.innerHTML = '<span style="color:var(--muted);font-size:12px">No sources referenced.</span>';
+
+  // ─ Key risks ─
+  const krList = document.getElementById('keyRisksList');
+  krList.innerHTML = '';
+  (risk.key_risks || []).forEach(r => {
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:12px;padding:4px 8px;background:var(--surface2);border-radius:5px;border-left:2px solid var(--danger)';
+    d.textContent = r;
+    krList.appendChild(d);
+  });
+}
+
+// ── Colour palette ──────────────────────────────────────────────────
+const ASSET_COLORS = [
+  '#0f62fe','#42be65','#8b5cf6','#f59e0b',
+  '#06b6d4','#ef4444','#14b8a6','#a78bfa',
+  '#fbbf24','#34d399',
+];
+
+// ── Allocation donut ────────────────────────────────────────────────
+function renderAllocationChart(allocs) {
+  const ctx = document.getElementById('allocationChart').getContext('2d');
+  if (charts.alloc) charts.alloc.destroy();
+  if (!allocs.length) {
+    allocs = [
+      { asset_class:'Equities',       percentage:45 },
+      { asset_class:'Fixed Income',   percentage:25 },
+      { asset_class:'Real Estate',    percentage:10 },
+      { asset_class:'Commodities',    percentage:8  },
+      { asset_class:'Cash',           percentage:7  },
+      { asset_class:'Alternatives',   percentage:5  },
+    ];
+  }
+  charts.alloc = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels: allocs.map(a => a.asset_class),
+      datasets:[{
+        data: allocs.map(a => a.percentage),
+        backgroundColor: ASSET_COLORS.slice(0, allocs.length),
+        borderColor: '#161b22', borderWidth:2,
+        hoverOffset:6,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'right', labels:{ color:'#8b949e', font:{size:11}, boxWidth:12, padding:8 }},
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw}%` }},
+      },
+      cutout:'62%',
+    },
+  });
+}
+
+// ── Risk radar chart ────────────────────────────────────────────────
+function renderRiskChart(metrics) {
+  const ctx = document.getElementById('riskChart').getContext('2d');
+  if (charts.risk) charts.risk.destroy();
+  charts.risk = new Chart(ctx, {
+    type:'radar',
+    data:{
+      labels:['Volatility','Drawdown','Concentration','Liquidity','Market','Credit'],
+      datasets:[{
+        label:'Risk Profile',
+        data:[
+          (metrics.volatility           || 0.15) * 100,
+          Math.abs(metrics.max_drawdown || -0.18) * 100,
+          (1 - (metrics.diversification_score || 7)/10) * 100,
+          40,
+          (metrics.risk_score           || 5) * 10,
+          20,
+        ],
+        backgroundColor:'rgba(15,98,254,.15)',
+        borderColor:'rgba(15,98,254,.7)',
+        pointBackgroundColor:'#4589ff',
+        pointRadius:3, borderWidth:2,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        r:{
+          angleLines:{ color:'rgba(255,255,255,.06)' },
+          grid:{ color:'rgba(255,255,255,.06)' },
+          pointLabels:{ color:'#8b949e', font:{size:10} },
+          ticks:{ display:false, stepSize:20 },
+          suggestedMin:0, suggestedMax:100,
+        },
+      },
+      plugins:{ legend:{ display:false }},
+    },
+  });
+}
+
+// ── Growth projection line chart ────────────────────────────────────
+function renderGrowthChart(initial, rate, years, monthly) {
+  const ctx = document.getElementById('growthChart').getContext('2d');
+  if (charts.growth) charts.growth.destroy();
+
+  const labels=[]; const base=[]; const bull=[]; const bear=[];
+  for (let y = 0; y <= years; y++) {
+    labels.push('Y' + y);
+    base.push(calcProjected(initial, monthly, rate,       y));
+    bull.push(calcProjected(initial, monthly, rate+0.04,  y));
+    bear.push(calcProjected(initial, monthly, rate-0.05,  y));
+  }
+
+  charts.growth = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Bull',  data:bull,  borderColor:'rgba(66,190,101,.5)',  backgroundColor:'rgba(66,190,101,.05)',  borderWidth:1.5, pointRadius:0, fill:false },
+        { label:'Base',  data:base,  borderColor:'#0f62fe',              backgroundColor:'rgba(15,98,254,.08)',   borderWidth:2,   pointRadius:0, fill:true  },
+        { label:'Bear',  data:bear,  borderColor:'rgba(239,68,68,.5)',   backgroundColor:'rgba(239,68,68,.05)',   borderWidth:1.5, pointRadius:0, fill:false },
+      ],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ labels:{ color:'#8b949e', font:{size:11}, boxWidth:12 }},
+        tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${fmtMoney(ctx.raw)}` }},
+      },
+      scales:{
+        x:{ ticks:{ color:'#6e7681', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' }},
+        y:{
+          ticks:{ color:'#6e7681', font:{size:10}, callback: v => fmtMoney(v) },
+          grid:{ color:'rgba(255,255,255,.04)' },
+        },
+      },
+    },
+  });
+}
+
+// ── Allocation table ────────────────────────────────────────────────
+const AC_CLASS_MAP = {
+  'equities':'ac-eq','equity':'ac-eq','stocks':'ac-eq',
+  'fixed income':'ac-fi','bonds':'ac-fi','fixed':'ac-fi',
+  'real estate':'ac-re','reits':'ac-re',
+  'cash':'ac-ca','money market':'ac-ca',
+  'commodities':'ac-co','commodity':'ac-co','gold':'ac-co',
+  'crypto':'ac-cr','cryptocurrency':'ac-cr',
+  'international':'ac-in','emerging':'ac-in',
+};
+function acBadgeClass(name) {
+  const k = (name || '').toLowerCase();
+  for (const [kw, cls] of Object.entries(AC_CLASS_MAP)) { if (k.includes(kw)) return cls; }
+  return 'ac-ca';
+}
+
+function renderAllocTable(allocs) {
+  const tbody = document.getElementById('allocTableBody');
+  tbody.innerHTML = '';
+  if (!allocs.length) return;
+  allocs.forEach(a => {
+    const tr = document.createElement('tr');
+    const pct = a.percentage || 0;
+    const cls = acBadgeClass(a.asset_class);
+    tr.innerHTML = `
+      <td><strong>${escHtml(a.asset_class || '')}</strong></td>
+      <td><span class="ac-badge ${cls}">${escHtml(a.asset_class || '')}</span></td>
+      <td><strong>${pct}%</strong></td>
+      <td>
+        <div class="alloc-bar-wrap">
+          <div class="alloc-bar" style="width:${Math.max(pct,2)}%"></div>
+          <span style="font-size:11px;color:var(--muted)">${pct}%</span>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--muted)">${escHtml((a.instruments||[]).join(', ') || '—')}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Top picks ───────────────────────────────────────────────────────
+function renderTopPicks(picks) {
+  const grid = document.getElementById('topPicksGrid');
+  grid.innerHTML = '';
+  if (!picks.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:12px">No picks returned.</div>';
+    return;
+  }
+  picks.slice(0, 6).forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'pick-card';
+    d.innerHTML = `<div class="pick-num">Pick #${i+1}</div><div class="pick-text">${escHtml(typeof p === 'string' ? p : p.name || JSON.stringify(p))}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+// ── Sector heatmap ──────────────────────────────────────────────────
+function sectorColor(val) {
+  if (val > 2)  return { bg:'rgba(66,190,101,.18)',  color:'#42be65' };
+  if (val > 0)  return { bg:'rgba(66,190,101,.09)',  color:'#6dde8f' };
+  if (val < -2) return { bg:'rgba(239,68,68,.18)',   color:'#ef4444' };
+  if (val < 0)  return { bg:'rgba(239,68,68,.09)',   color:'#ff9999' };
+  return { bg:'rgba(100,116,139,.12)', color:'#8b949e' };
+}
+
+function renderSectorHeatmap(sectors) {
+  const grid = document.getElementById('sectorGrid');
+  grid.innerHTML = '';
+  const defaultSectors = {
+    'Technology':2.4,'Healthcare':-0.8,'Finance':1.1,'Energy':-1.5,
+    'Utilities':0.3,'Consumer':0.9,'Industrials':1.7,'Materials':-0.4,
+  };
+  const src = Object.keys(sectors).length ? sectors : defaultSectors;
+  Object.entries(src).forEach(([name, val]) => {
+    const c = sectorColor(Number(val));
+    const d = document.createElement('div');
+    d.className = 'sector-cell';
+    d.style.cssText = `background:${c.bg};color:${c.color}`;
+    d.innerHTML = `<div class="sector-name">${escHtml(name)}</div><div class="sector-val">${Number(val)>=0?'+':''}${Number(val).toFixed(1)}%</div>`;
+    grid.appendChild(d);
+  });
+}
+
+// ── Alerts ──────────────────────────────────────────────────────────
+function renderAlerts(alerts) {
+  const list = document.getElementById('alertList');
+  document.getElementById('alertCountBadge').textContent = alerts.length;
+  list.innerHTML = '';
+  if (!alerts.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">No active alerts.</div>';
+    return;
+  }
+  alerts.forEach(a => {
+    const sev  = (a.severity || 'info').toLowerCase();
+    const icon = sev==='critical' ? '&#x1F6A8;' : sev==='warning' ? '&#x26A0;' : '&#x2139;';
+    const d = document.createElement('div');
+    d.className = 'alert-item ' + sev;
+    d.innerHTML = `
+      <div class="alert-icon">${icon}</div>
+      <div>
+        <div class="alert-title">${escHtml(a.title||a.message||'Alert')}</div>
+        <div class="alert-desc">${escHtml(a.description||a.message||'')}</div>
+        ${a.action ? `<div class="alert-action">${escHtml(a.action)}</div>` : ''}
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+// ── Indices bar chart ────────────────────────────────────────────────
+function renderIndicesChart(indices) {
+  const ctx = document.getElementById('indicesChart').getContext('2d');
+  if (charts.indices) charts.indices.destroy();
+  const defaults = {
+    'S&P 500':0.42,'NASDAQ':0.67,'Dow Jones':0.18,
+    'FTSE 100':-0.12,'Nikkei':1.05,'DAX':0.33,
+  };
+  const src = Object.keys(indices).length ? indices : defaults;
+  const labels = Object.keys(src);
+  const vals   = Object.values(src).map(Number);
+  charts.indices = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Change %',
+        data: vals,
+        backgroundColor: vals.map(v => v >= 0 ? 'rgba(66,190,101,.7)' : 'rgba(239,68,68,.7)'),
+        borderRadius:4, borderWidth:0,
+      }],
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: c => `  ${c.raw >= 0?'+':''}${c.raw.toFixed(2)}%` }}},
+      scales:{
+        x:{ ticks:{ color:'#8b949e', font:{size:11} }, grid:{ display:false }},
+        y:{
+          ticks:{ color:'#6e7681', font:{size:10}, callback: v => (v>=0?'+':'')+v.toFixed(1)+'%' },
+          grid:{ color:'rgba(255,255,255,.04)' },
+        },
+      },
+    },
+  });
+}
+
+// ── File upload ──────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = 'Uploading...';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch(`${API_BASE}/api/upload?user_id=ui_user`, { method:'POST', body:fd });
+    if (r.ok) {
+      const d = await r.json();
+      statusEl.textContent = `Ingested ${d.chunks_ingested} chunks`;
+      statusEl.style.color = 'var(--ibm-green)';
+    } else {
+      statusEl.textContent = 'Upload failed';
+      statusEl.style.color = 'var(--danger)';
+    }
+  } catch {
+    statusEl.textContent = 'Upload error (offline?)';
+    statusEl.style.color = 'var(--warn)';
+  }
+  setTimeout(() => { statusEl.textContent = ''; statusEl.style.color = ''; }, 4000);
+  e.target.value = '';
+});
+
+// ── Demo data generator ───────────────────────────────────────────────
+function generateDemoData(query) {
+  const q = query.toLowerCase();
+  const isRisk       = q.includes('risk') || q.includes('volatil');
+  const isRetirement = q.includes('retire') || q.includes('pension');
+  const isGrowth     = q.includes('growth') || q.includes('wealth') || q.includes('portfolio');
+
+  const allocs = isRisk ? [
+    { asset_class:'Fixed Income', percentage:40, instruments:['VBTLX','TLT','BND'] },
+    { asset_class:'Equities',     percentage:30, instruments:['SPY','QQQ'] },
+    { asset_class:'Gold',         percentage:15, instruments:['GLD','IAU'] },
+    { asset_class:'Cash',         percentage:15, instruments:['VMFXX'] },
+  ] : isRetirement ? [
+    { asset_class:'Equities',     percentage:50, instruments:['VTI','VXUS'] },
+    { asset_class:'Fixed Income', percentage:35, instruments:['VBTLX','TIPS'] },
+    { asset_class:'Real Estate',  percentage:10, instruments:['VNQ','REIT'] },
+    { asset_class:'Cash',         percentage:5,  instruments:['VMFXX'] },
+  ] : [
+    { asset_class:'Equities',     percentage:45, instruments:['SPY','QQQ','VTI'] },
+    { asset_class:'Fixed Income', percentage:25, instruments:['VBTLX','BND'] },
+    { asset_class:'Real Estate',  percentage:10, instruments:['VNQ','REIT'] },
+    { asset_class:'Commodities',  percentage:8,  instruments:['GLD','DJP'] },
+    { asset_class:'Alternatives', percentage:7,  instruments:['ARKK','BITO'] },
+    { asset_class:'Cash',         percentage:5,  instruments:['VMFXX'] },
+  ];
+
+  return {
+    session_id: 'demo-' + Date.now(),
+    message: 'Demo response — IBM Granite-4.0-8B-Instruct would provide personalised advice here.',
+    sources: ['ibm-granite-4.0','watsonx-rag','market-data','financial-docs'],
+    recommendation:{
+      asset_allocation: allocs,
+      expected_annual_return: isRisk ? 0.06 : isRetirement ? 0.075 : 0.082,
+      diversification_score: isRisk ? 8.2 : 7.5,
+      top_picks: [
+        'Vanguard Total Stock Market ETF (VTI)',
+        'iShares MSCI World ETF (URTH)',
+        'Vanguard Total Bond Market (VBTLX)',
+        'Invesco QQQ Trust (QQQ)',
+        'iShares Gold Trust (IAU)',
+        'Vanguard Real Estate ETF (VNQ)',
+      ],
+    },
+    risk_metrics:{
+      risk_score: isRisk ? 3.2 : isRetirement ? 4.5 : 5.8,
+      volatility: isRisk ? 0.08 : 0.15,
+      max_drawdown: isRisk ? -0.10 : -0.22,
+      diversification_score: isRisk ? 8.2 : 7.5,
+      stress_test_scenarios:{ bear_market:-0.18, base_case:0.082, bull_market:0.21 },
+      key_risks: ['Market volatility', 'Inflation risk', 'Interest rate changes', 'Geopolitical uncertainty'],
+      mitigation_strategies:[
+        'Diversify across uncorrelated asset classes',
+        'Rebalance portfolio quarterly',
+        'Maintain 3-6 month emergency cash reserve',
+        'Use dollar-cost averaging for contributions',
+        'Review allocation annually against goals',
+      ],
+    },
+    market_insight:{
+      market_sentiment: 'Bullish',
+      sector_performance:{ Technology:2.4, Healthcare:-0.8, Finance:1.1, Energy:-1.5, Utilities:0.3, Consumer:0.9, Industrials:1.7, Materials:-0.4 },
+      major_indices:{ 'S&P 500':0.42, 'NASDAQ':0.67, 'Dow Jones':0.18, 'FTSE 100':-0.12, 'Nikkei':1.05, 'DAX':0.33 },
+      alerts:[
+        { severity:'info',    title:'Fed Rate Decision', description:'FOMC meeting scheduled next week — monitor bond yields.', action:'Watch TLT/BND' },
+        { severity:'warning', title:'Tech Sector Overbought', description:'RSI above 72 on QQQ — short-term correction possible.', action:'Trim QQQ position' },
+      ],
+    },
+  };
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function calcProjected(initial, monthly, rate, years) {
+  let val = initial;
+  for (let y = 0; y < years; y++) { val = val * (1 + rate) + monthly * 12; }
+  return val;
+}
+function fmtMoney(n) {
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
+
+// ── Load Chart.js dynamically ──────────────────────────────────────
+(function loadChartJS() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+  s.onload = () => console.log('Chart.js loaded');
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

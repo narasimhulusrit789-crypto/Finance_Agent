@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  finance-agent:
+    build: .
+    container_name: finance-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - REDIS_URL=redis://redis:6379
+      # ── IBM watsonx.ai (Granite-4.0-8B-Instruct) ──────────────────
+      - WATSONX_API_KEY=aZP_dpBOLpoBH2MmXrODLAqSgzRN6UAG01XJ97VEkBz7
+      - WATSONX_PROJECT_ID=d2be2c10-b24e-4054-b324-1e8fa543e0ad
+      - WATSONX_URL=https://us-south.ml.cloud.ibm.com
+      - WATSONX_REGION=us-south
+      - GRANITE_MODEL_ID=ibm/granite-4-h-small
+      - GRANITE_MAX_TOKENS=4096
+      - GRANITE_TEMPERATURE=0.7
+      - GRANITE_TOP_P=0.95
+      # ── IBM Cloud ──────────────────────────────────────────────────
+      - IBM_CLOUD_API_KEY=aZP_dpBOLpoBH2MmXrODLAqSgzRN6UAG01XJ97VEkBz7
+      - IBM_CLOUD_REGION=us-south
+      - IBM_CLOUD_RESOURCE_GROUP=default
+      # ── Application ───────────────────────────────────────────────
+      - SECRET_KEY=finance-agent-ibm-granite-4-secret-2025-x9k2
+      - VECTOR_DB_TYPE=chromadb
+      - VECTOR_DB_PATH=./data/vector_store
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - CHUNK_SIZE=512
+      - CHUNK_OVERLAP=64
+      - TOP_K_RESULTS=5
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  redis:
+    image: redis:7-alpine
+    container_name: finance-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
